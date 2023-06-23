@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from .bilstm import BILSTM
 
 
-def run(epoch=100, lr=0.01, step_size=3, gamma=0.5, batch_size=15, device_type="cpu"):
+def run(epoch=20, lr=0.01, step_size=3, gamma=0.5, batch_size=40, device_type="cpu"):
     trainData = pd.read_csv('dist/sflds/df_train.csv')
     df_majority = trainData[trainData.bug == 0]
     df_minority = trainData[trainData.bug == 1]
@@ -31,13 +31,8 @@ def run(epoch=100, lr=0.01, step_size=3, gamma=0.5, batch_size=15, device_type="
 
     # oversampling SMOGN, SMOTER, None
     # normalize use Z, min-max, None
-    bfs_data, bfs_eval, dfs_data, dfs_eval, labels_data, labels_eval = train_test_split(bfs_data, dfs_data, labels_data,
-                                                                                        test_size=0.1)
-
     train_data = TensorDataset(torch.from_numpy(bfs_data.values), torch.from_numpy(dfs_data.values),
                                torch.from_numpy(labels_data.values))
-    eval_data = TensorDataset(torch.from_numpy(bfs_eval.values), torch.from_numpy(dfs_eval.values),
-                              torch.from_numpy(labels_eval.values))
 
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
@@ -49,6 +44,7 @@ def run(epoch=100, lr=0.01, step_size=3, gamma=0.5, batch_size=15, device_type="
     criterion = nn.BCELoss()
     for epoch in range(epoch):
         model.train()
+        train_loss = 0
         for i, data in enumerate(train_loader, 0):
             bfs, dfs, labels = data
             bfs, dfs, labels = bfs.to(device), dfs.to(device), labels.float().to(device)
@@ -56,16 +52,11 @@ def run(epoch=100, lr=0.01, step_size=3, gamma=0.5, batch_size=15, device_type="
             optimizer.zero_grad()
             outputs = model(bfs, dfs)
             loss = criterion(outputs, labels)
+            train_loss += loss
             loss.backward()
             optimizer.step()
-        model.eval()
-        with torch.no_grad():
-            bfs, dfs, labels = eval_data.tensors
-            bfs, dfs, labels = bfs.to(device), dfs.to(device), labels.float().to(device)
-            labels = labels.view(-1, 1)
-            outputs = model(bfs, dfs)
-            val_loss = criterion(outputs, labels)
-        print(f"Epoch {epoch + 1}: Eval Loss = {val_loss:.4f}")
+        train_loss = train_loss / len(train_loader)
+        print(f"Epoch {epoch + 1}: Train Loss = {train_loss:.4f}")
         scheduler.step()
 
     # save model
