@@ -14,6 +14,11 @@ def run(versions=None):
         dfs.append(df)
 
     df = pd.concat(dfs)
+    # normalize
+    features = df.drop(['bug'], axis=1)
+    for column in features.columns:
+        features[column] = features[column] / features[column].max()
+    df = pd.concat([features, df['bug']], axis=1)
     df.to_csv('dist/tree_ensembles/df.csv', index=False)
     train, test = train_test_split(df, test_size=0.2)
     train.to_csv('dist/tree_ensembles/df_train.csv', index=False)

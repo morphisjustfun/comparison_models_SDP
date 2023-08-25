@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from .bilstm import BILSTM
 
 
-def run(epoch=20, lr=0.01, step_size=3, gamma=0.5, batch_size=40, device_type="cpu"):
+def run(epoch=20, lr=0.01, step_size=3, gamma=0.5, batch_size=15, device_type="cpu"):
     trainData = pd.read_csv('dist/sflds/df_train.csv')
     df_majority = trainData[trainData.bug == 0]
     df_minority = trainData[trainData.bug == 1]
